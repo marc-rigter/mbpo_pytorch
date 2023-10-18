@@ -22,7 +22,7 @@ from env import create_env
 def readParser():
     parser = argparse.ArgumentParser(description='MBPO')
     parser.add_argument('--env_name', default="hopper_hop",
-                        help='Mujoco Gym environment (default: Hopper-v2)')
+                        help='Mujoco Gym environment (default: hopper_hop)')
     parser.add_argument('--seed', type=int, default=123456, metavar='N',
                         help='random seed (default: 123456)')
 
