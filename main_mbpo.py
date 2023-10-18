@@ -17,11 +17,11 @@ from model import EnsembleDynamicsModel
 from predict_env import PredictEnv
 from sample_env import EnvSampler
 from tf_models.constructor import construct_model, format_samples_for_training
-
+from env import create_env
 
 def readParser():
     parser = argparse.ArgumentParser(description='MBPO')
-    parser.add_argument('--env_name', default="Hopper-v2",
+    parser.add_argument('--env_name', default="hopper_hop",
                         help='Mujoco Gym environment (default: Hopper-v2)')
     parser.add_argument('--seed', type=int, default=123456, metavar='N',
                         help='random seed (default: 123456)')
@@ -269,12 +269,12 @@ def main(args=None):
         args = readParser()
 
     # Initial environment
-    env = gym.make(args.env_name)
+    env = create_env(args.env_name, suite='dmc')
 
     # Set random seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    env.seed(args.seed)
+    # env.seed(args.seed)
 
     # Intial agent
     agent = SAC(env.observation_space.shape[0], env.action_space, args)

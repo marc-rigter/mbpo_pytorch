@@ -48,6 +48,8 @@ class PredictEnv:
             done = ~not_done
             done = done[:, None]
             return done
+        else:
+            return np.zeros((obs.shape[0], 1)).astype(bool)
 
     def _get_logprob(self, x, means, variances):
 
