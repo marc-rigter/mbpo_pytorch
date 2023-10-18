@@ -6,6 +6,7 @@ import numpy as np
 from itertools import count
 
 import logging
+import wandb
 
 import os
 import os.path as osp
@@ -23,6 +24,8 @@ def readParser():
     parser = argparse.ArgumentParser(description='MBPO')
     parser.add_argument('--env_name', default="hopper_hop",
                         help='Mujoco Gym environment (default: hopper_hop)')
+    parser.add_argument('--suite', default="dmc")
+    parser.add_argument('--group', default="default")
     parser.add_argument('--seed', type=int, default=123456, metavar='N',
                         help='random seed (default: 123456)')
 
@@ -112,6 +115,7 @@ def train(args, env_sampler, predict_env, agent, env_pool, model_pool):
     for epoch_step in range(args.num_epoch):
         start_step = total_step
         train_policy_steps = 0
+        all_metrics = dict()
         for i in count():
             cur_step = total_step - start_step
 
@@ -132,8 +136,9 @@ def train(args, env_sampler, predict_env, agent, env_pool, model_pool):
             env_pool.push(cur_state, action, reward, next_state, done)
 
             if len(env_pool) > args.min_pool_size:
-                train_policy_steps += train_policy_repeats(args, total_step, train_policy_steps, cur_step, env_pool, model_pool, agent)
-
+                steps, metrics = train_policy_repeats(args, total_step, train_policy_steps, cur_step, env_pool, model_pool, agent)
+                train_policy_steps += steps
+                all_metrics.update(metrics)
             total_step += 1
 
             if total_step % args.epoch_length == 0:
@@ -143,20 +148,26 @@ def train(args, env_sampler, predict_env, agent, env_pool, model_pool):
                 logging.info("Step Reward: " + str(total_step) + " " + str(env_sampler.path_rewards[-1]) + " " + str(avg_reward))
                 print(total_step, env_sampler.path_rewards[-1], avg_reward)
                 '''
-                env_sampler.current_state = None
-                sum_reward = 0
-                done = False
-                test_step = 0
+                total_rewards = []
+                for i in range(5):
+                    env_sampler.current_state = None
+                    sum_reward = 0
+                    done = False
+                    test_step = 0
 
-                while (not done) and (test_step != args.max_path_length):
-                    cur_state, action, next_state, reward, done, info = env_sampler.sample(agent, eval_t=True)
-                    sum_reward += reward
-                    test_step += 1
-                # logger.record_tabular("total_step", total_step)
-                # logger.record_tabular("sum_reward", sum_reward)
-                # logger.dump_tabular()
-                logging.info("Step Reward: " + str(total_step) + " " + str(sum_reward))
+                    while (not done) and (test_step != args.max_path_length):
+                        cur_state, action, next_state, reward, done, info = env_sampler.sample(agent, eval_t=True)
+                        sum_reward += reward
+                        test_step += 1
+                    total_rewards.append(sum_reward)
+                    # logger.record_tabular("total_step", total_step)
+                    # logger.record_tabular("sum_reward", sum_reward)
+                    # logger.dump_tabular()
+                    logging.info("Step Reward: " + str(total_step) + " " + str(sum_reward))
+                all_metrics.update({"eval/eval_reward: ": sum(total_rewards) / len(total_rewards)})
+                    
                 # print(total_step, sum_reward)
+        wandb.log(all_metrics, step=epoch_step)
 
 
 def exploration_before_start(args, env_sampler, env_pool, agent):
@@ -210,10 +221,10 @@ def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length
 
 def train_policy_repeats(args, total_step, train_step, cur_step, env_pool, model_pool, agent):
     if total_step % args.train_every_n_steps > 0:
-        return 0
+        return 0, {}
 
     if train_step > args.max_train_repeat_per_step * total_step:
-        return 0
+        return 0, {}
 
     for i in range(args.num_train_repeat):
         env_batch_size = int(args.policy_train_batch_size * args.real_ratio)
@@ -235,9 +246,9 @@ def train_policy_repeats(args, total_step, train_step, cur_step, env_pool, model
 
         batch_reward, batch_done = np.squeeze(batch_reward), np.squeeze(batch_done)
         batch_done = (~batch_done).astype(int)
-        agent.update_parameters((batch_state, batch_action, batch_reward, batch_next_state, batch_done), args.policy_train_batch_size, i)
+        metrics = agent.update_parameters((batch_state, batch_action, batch_reward, batch_next_state, batch_done), args.policy_train_batch_size, i)
 
-    return args.num_train_repeat
+    return args.num_train_repeat, metrics
 
 
 from gym.spaces import Box
@@ -269,7 +280,8 @@ def main(args=None):
         args = readParser()
 
     # Initial environment
-    env = create_env(args.env_name, suite='dmc')
+    env = create_env(args.env_name, suite=args.suite)
+    wandb.init(entity="a2i", project="MBPO_baseline", group=args.group, config=args)
 
     # Set random seed
     torch.manual_seed(args.seed)

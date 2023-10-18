@@ -107,7 +107,19 @@ class SAC(object):
         if updates % self.target_update_interval == 0:
             soft_update(self.critic_target, self.critic, self.tau)
 
-        return qf1_loss.item(), qf2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item()
+        metrics = {
+            'qf1_loss': qf1_loss.item(),
+            'qf2_loss': qf2_loss.item(),
+            'policy_loss': policy_loss.item(),
+            'alpha_loss': alpha_loss.item(),
+            'alpha': self.alpha,
+            'avg_train_reward': reward_batch.mean().item(),
+            'qf1_mean': qf1.mean().item(),
+            'qf2_mean': qf2.mean().item(),
+            'policy_entropy': -1*log_pi.mean().item()
+        }
+
+        return metrics
 
     # Save model parameters
     def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
