@@ -200,7 +200,7 @@ class EnsembleDynamicsModel():
         self.ensemble_model = EnsembleModel(state_size, action_size, reward_size, network_size, hidden_size, use_decay=use_decay)
         self.scaler = StandardScaler()
 
-    def train(self, inputs, labels, batch_size=256, holdout_ratio=0., max_epochs_since_update=5):
+    def train(self, inputs, labels, batch_size=256, holdout_ratio=0., max_epochs_since_update=10000, max_grad_updates=None):
         self._max_epochs_since_update = max_epochs_since_update
         self._epochs_since_update = 0
         self._state = {}
@@ -221,6 +221,7 @@ class EnsembleDynamicsModel():
         holdout_labels = torch.from_numpy(holdout_labels).float().to(device)
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
+        num_updates = 0
 
         for epoch in itertools.count():
 
@@ -235,6 +236,11 @@ class EnsembleDynamicsModel():
                 loss, _ = self.ensemble_model.loss(mean, logvar, train_label)
                 self.ensemble_model.train(loss)
                 losses.append(loss)
+                num_updates += 1
+                if max_grad_updates is not None:
+                    if num_updates >= max_grad_updates:
+                        print("Trained model for {} updates".format(num_updates))
+                        return
 
             with torch.no_grad():
                 holdout_mean, holdout_logvar = self.ensemble_model(holdout_inputs, ret_log_var=True)

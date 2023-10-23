@@ -8,10 +8,10 @@ class ReplayMemory:
         self.buffer = []
         self.position = 0
 
-    def push(self, state, action, reward, next_state, done):
+    def push(self, state, action, reward, next_state, done, sim_state=None):
         if len(self.buffer) < self.capacity:
             self.buffer.append(None)
-        self.buffer[self.position] = (state, action, reward, next_state, done)
+        self.buffer[self.position] = (state, action, reward, next_state, done, sim_state)
         self.position = (self.position + 1) % self.capacity
 
     def push_batch(self, batch):
@@ -31,14 +31,14 @@ class ReplayMemory:
         if batch_size > len(self.buffer):
             batch_size = len(self.buffer)
         batch = random.sample(self.buffer, int(batch_size))
-        state, action, reward, next_state, done = map(np.stack, zip(*batch))
-        return state, action, reward, next_state, done
+        state, action, reward, next_state, done, sim_state = map(np.stack, zip(*batch))
+        return state, action, reward, next_state, done, sim_state
 
     def sample_all_batch(self, batch_size):
         idxes = np.random.randint(0, len(self.buffer), batch_size)
         batch = list(itemgetter(*idxes)(self.buffer))
-        state, action, reward, next_state, done = map(np.stack, zip(*batch))
-        return state, action, reward, next_state, done
+        state, action, reward, next_state, done, sim_state = map(np.stack, zip(*batch))
+        return state, action, reward, next_state, done, sim_state
 
     def return_all(self):
         return self.buffer
