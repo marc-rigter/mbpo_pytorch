@@ -185,7 +185,7 @@ class GymWrapper(Env):
                 })
         return observation, reward, termination, truncation, info
     
-    def set_state(self, obs, sim_state):
+    def set_state(self, sim_state):
         self._env.set_state(sim_state[:len(sim_state)//2], sim_state[len(sim_state)//2:])
 
     def reset(self):

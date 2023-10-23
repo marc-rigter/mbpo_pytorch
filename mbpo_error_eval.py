@@ -69,9 +69,9 @@ def readParser():
                         help='retain epochs')
     parser.add_argument('--model_train_freq', type=int, default=250, metavar='A',
                         help='frequency of training')
-    parser.add_argument('--rollout_batch_size', type=int, default=1000, metavar='A',
+    parser.add_argument('--rollout_batch_size', type=int, default=500, metavar='A',
                         help='rollout number M')
-    parser.add_argument('--epoch_length', type=int, default=1000, metavar='A',
+    parser.add_argument('--epoch_length', type=int, default=20000, metavar='A',
                         help='steps per epoch')
     parser.add_argument('--rollout_min_epoch', type=int, default=20, metavar='A',
                         help='rollout min epoch')
@@ -79,7 +79,7 @@ def readParser():
                         help='rollout max epoch')
     parser.add_argument('--rollout_length', type=int, default=100, metavar='A',
                         help='rollout length')
-    parser.add_argument('--num_epoch', type=int, default=1000, metavar='A',
+    parser.add_argument('--num_epoch', type=int, default=50, metavar='A',
                         help='total number of epochs')
     parser.add_argument('--min_pool_size', type=int, default=1000, metavar='A',
                         help='minimum pool size')
@@ -105,19 +105,17 @@ def readParser():
     return parser.parse_args()
 
 
-def train(args, env_sampler, predict_env, a2c, env_pool, model_pool):
+def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
     total_step = 0
     reward_sum = 0
     rollout_length = 1
 
     for epoch_step in range(args.num_epoch):
-        start_step = total_step
-        train_policy_steps = 0
-        all_metrics = dict()
-
         train_predict_model(args, env_pool, predict_env, num_steps=args.epoch_length)
-        metrics = rollout_model(args, predict_env, a2c, model_pool, env_pool, args.rollout_length)
-        wandb.log(all_metrics, step=epoch_step)
+        rollout_states, rollout_actions, rollout_rewards, init_sim_state = rollout_model(args, predict_env, a2c, model_pool, env_pool, args.rollout_length)
+        metrics = compute_traj_errors(env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
+        wandb.log(metrics, step=(epoch_step + 1) * args.epoch_length)
+        
 
 
 def exploration_before_start(args, env_sampler, env_pool, agent):
@@ -153,14 +151,96 @@ def resize_model_pool(args, rollout_length, model_pool):
 
     return new_model_pool
 
+def compute_traj_errors(env, observations, actions, rewards, sim_states, num_steps=[1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 350, 400, 500]):
+    """
+        Observations and actions are [n_traj X traj_len X dim]
+        Rewards is [n_traj X traj_len]
+    """
+
+    # loop through the observations and actions
+    if not hasattr(env, "set_state"):
+        return None, None
+    
+    metrics = dict()
+
+    max_steps = observations.shape[1] - 1
+    if max_steps not in num_steps:
+        num_steps.append(max_steps)
+
+    # compute open-loop predictions for different horizons
+    for num_step in num_steps:
+        obs_errors = []
+        rew_errors = []
+
+        if num_step > max_steps:
+            continue
+
+        # loop over each imagined trajectory
+        for ep_obs, ep_act, ep_rew, ep_sim_state in zip(observations, actions, rewards, sim_states):
+
+            # compute prediction error from initial state
+            init_t = 0
+            init_sim_state = ep_sim_state[init_t, :]
+
+            # set initial simulator state
+            env.reset()
+            env.set_state(init_sim_state)
+
+            # loop over the next num_step steps
+            for k in range(num_step):
+                a = ep_act[init_t + k]
+                next_s_actual, r_actual, _, _, _ = env.step(a)
+
+            # compute error in open-loop state prediction
+            next_s_pred = ep_obs[init_t+num_step, :]
+            obs_error = np.square(next_s_pred - next_s_actual).mean()
+            obs_errors.append(obs_error)
+
+            # only compute reward error for first step
+            if num_step == 1:
+                r_pred = ep_rew[init_t]
+                r_error = np.square(r_pred - r_actual).mean()
+                rew_errors.append(r_error)
+
+        obs_errors = np.array(obs_errors)
+        rew_errors = np.array(rew_errors)
+
+        metrics.update({
+            f"errors/dynamics_mse_{num_step:04}_step": obs_errors.mean(),
+            f"errors/dynamics_mse_std_{num_step:04}_step": obs_errors.std(),
+            f"errors/dynamics_mse_max_{num_step:04}_step": obs_errors.max(),
+            f"errors/dynamics_mse_min_{num_step:04}_step": obs_errors.min(),
+        })
+
+        if num_step == 1:
+            metrics.update({
+                "errors/reward_mse": rew_errors.mean(),
+                "errors/reward_mse_std": rew_errors.std(),
+                "errors/reward_mse_max": rew_errors.max(),
+                "errors/reward_mse_min": rew_errors.min(),
+            })
+
+    return metrics
+
 
 def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length):
     state, action, reward, next_state, done, sim_state = env_pool.sample_all_batch(args.rollout_batch_size)
+
+    all_state = np.zeros((args.rollout_batch_size, rollout_length, state.shape[1])) # B x T x D
+    all_action = np.zeros((args.rollout_batch_size, rollout_length, action.shape[1])) # B x T x A
+    all_reward = np.zeros((args.rollout_batch_size, rollout_length, 1)) # B x T x R
+    all_sim_state = np.zeros((args.rollout_batch_size, 1, sim_state.shape[1])) # B x 1 x S
+    all_sim_state[:, 0, :] = sim_state
+
     for i in range(rollout_length):
         policy_distr = agent.forward_actor(torch.Tensor(state).to("cuda:0"), normed_input=False)
         action = policy_distr.sample().detach().cpu().numpy()
         next_states, rewards, terminals, info = predict_env.step(state, action)
-        model_pool.push_batch([(state[j], action[j], rewards[j], next_states[j], terminals[j]) for j in range(state.shape[0])])
+        all_state[:, i] = state
+        all_action[:, i] = action
+        all_reward[:, i] = rewards
+        state = next_states
+    return all_state, all_action, all_reward, all_sim_state
 
 
 def train_policy_repeats(args, total_step, train_step, cur_step, env_pool, model_pool, agent):
@@ -283,7 +363,7 @@ def main(args=None):
     # # Sampler of environment
     env_sampler = EnvSampler(env, max_path_length=args.max_path_length)
 
-    train(args, env_sampler, predict_env, a2c, env_pool, model_pool)
+    train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env)
 
 
 if __name__ == '__main__':
