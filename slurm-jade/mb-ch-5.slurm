@@ -21,7 +21,7 @@ module load pytorch/1.12.1
 
 export PYTHONPATH="${PYTHONPATH}:/jmain02/home/J2AD008/wga37/mxr40-wga37/github/mbpo_pytorch"
 
-GROUP=mbpo-online
+GROUP=mbpo-online-original-params
 SEED=1
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/

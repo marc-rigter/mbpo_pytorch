@@ -64,11 +64,11 @@ def readParser():
 
     parser.add_argument('--model_retain_epochs', type=int, default=1, metavar='A',
                         help='retain epochs')
-    parser.add_argument('--model_train_freq', type=int, default=1000, metavar='A',
+    parser.add_argument('--model_train_freq', type=int, default=250, metavar='A',
                         help='frequency of training')
-    parser.add_argument('--rollout_batch_size', type=int, default=10000, metavar='A',
+    parser.add_argument('--rollout_batch_size', type=int, default=50000, metavar='A',
                         help='rollout number M')
-    parser.add_argument('--epoch_length', type=int, default=5000, metavar='A',
+    parser.add_argument('--epoch_length', type=int, default=1000, metavar='A',
                         help='steps per epoch')
     parser.add_argument('--rollout_min_epoch', type=int, default=20, metavar='A',
                         help='rollout min epoch')
@@ -78,7 +78,7 @@ def readParser():
                         help='rollout min length')
     parser.add_argument('--rollout_max_length', type=int, default=15, metavar='A',
                         help='rollout max length')
-    parser.add_argument('--num_epoch', type=int, default=200, metavar='A',
+    parser.add_argument('--num_epoch', type=int, default=1000, metavar='A',
                         help='total number of epochs')
     parser.add_argument('--min_pool_size', type=int, default=1000, metavar='A',
                         help='minimum pool size')
@@ -86,7 +86,7 @@ def readParser():
                         help='ratio of env samples / model samples')
     parser.add_argument('--train_every_n_steps', type=int, default=1, metavar='A',
                         help='frequency of training policy')
-    parser.add_argument('--num_train_repeat', type=int, default=5, metavar='A',
+    parser.add_argument('--num_train_repeat', type=int, default=20, metavar='A',
                         help='times to training policy per step')
     parser.add_argument('--max_train_repeat_per_step', type=int, default=5, metavar='A',
                         help='max training times per step')
