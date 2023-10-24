@@ -29,4 +29,4 @@ export WANDB_API_KEY=833a88a1139a7f5523d4b39cfd80bbe8f6abb710
 export WANDB_MODE=offline
 
 cd /jmain02/home/J2AD008/wga37/mxr40-wga37/github/mbpo_pytorch
-/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 main_mbpo.py --group $GROUP --env_name Walker-v3 --rollout_min_length 100 --rollout_max_length 100 --rollout_batch_size 1000
+/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 main_mbpo.py --group $GROUP --env_name Walker2d-v3 --rollout_min_length 100 --rollout_max_length 100 --rollout_batch_size 1000
