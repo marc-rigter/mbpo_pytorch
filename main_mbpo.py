@@ -68,7 +68,7 @@ def readParser():
                         help='frequency of training')
     parser.add_argument('--rollout_batch_size', type=int, default=10000, metavar='A',
                         help='rollout number M')
-    parser.add_argument('--epoch_length', type=int, default=1000, metavar='A',
+    parser.add_argument('--epoch_length', type=int, default=5000, metavar='A',
                         help='steps per epoch')
     parser.add_argument('--rollout_min_epoch', type=int, default=20, metavar='A',
                         help='rollout min epoch')
@@ -78,7 +78,7 @@ def readParser():
                         help='rollout min length')
     parser.add_argument('--rollout_max_length', type=int, default=15, metavar='A',
                         help='rollout max length')
-    parser.add_argument('--num_epoch', type=int, default=1000, metavar='A',
+    parser.add_argument('--num_epoch', type=int, default=200, metavar='A',
                         help='total number of epochs')
     parser.add_argument('--min_pool_size', type=int, default=1000, metavar='A',
                         help='minimum pool size')
