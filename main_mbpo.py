@@ -18,6 +18,7 @@ from model import EnsembleDynamicsModel
 from predict_env import PredictEnv
 from sample_env import EnvSampler
 from env import create_env
+from utils import compute_traj_errors
 
 def readParser():
     parser = argparse.ArgumentParser(description='MBPO')
@@ -95,7 +96,8 @@ def readParser():
                         help='exploration steps initially')
     parser.add_argument('--max_path_length', type=int, default=1000, metavar='A',
                         help='max length of path')
-
+    parser.add_argument('--eval_error_interval', type=int, default=5000, metavar='A',
+                        help='max length of path')
 
     parser.add_argument('--model_type', default='pytorch', metavar='A',
                         help='predict model -- pytorch or tensorflow')
@@ -105,7 +107,7 @@ def readParser():
     return parser.parse_args()
 
 
-def train(args, env_sampler, predict_env, agent, env_pool, model_pool):
+def train(args, env_sampler, predict_env, agent, env_pool, model_pool, error_env):
     total_step = 0
     reward_sum = 0
     rollout_length = 1
@@ -131,7 +133,11 @@ def train(args, env_sampler, predict_env, agent, env_pool, model_pool):
                     model_pool = resize_model_pool(args, rollout_length, model_pool)
 
                 print(f"Rollout model")
-                rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length)
+                rollout_states, rollout_actions, rollout_rewards, init_sim_state = rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length)
+                
+                if total_step % args.eval_error_interval == 0:
+                    metrics = compute_traj_errors(error_env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
+                    all_metrics.update(metrics)
 
             cur_state, action, next_state, reward, done, info = env_sampler.sample(agent)
             env_pool.push(cur_state, action, reward, next_state, done, info["sim_state"])
@@ -208,16 +214,28 @@ def resize_model_pool(args, rollout_length, model_pool):
 
 def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length):
     state, action, reward, next_state, done, sim_state = env_pool.sample_all_batch(args.rollout_batch_size)
+    
+    eval_traj = 100
+    all_state = np.zeros((eval_traj, rollout_length, state.shape[1])) # B x T x D
+    all_action = np.zeros((eval_traj, rollout_length, action.shape[1])) # B x T x A
+    all_reward = np.zeros((eval_traj, rollout_length, 1)) # B x T x R
+    all_sim_state = np.zeros((eval_traj, 1, sim_state.shape[1])) # B x 1 x S
+    all_sim_state[:, 0, :] = sim_state[:eval_traj]
+    
     for i in range(rollout_length):
         # TODO: Get a batch of actions
         action = agent.select_action(state)
         next_states, rewards, terminals, info = predict_env.step(state, action)
+        all_state[:, i] = state[:eval_traj]
+        all_action[:, i] = action[:eval_traj]
+        all_reward[:, i] = rewards[:eval_traj]
         # TODO: Push a batch of samples
         model_pool.push_batch([(state[j], action[j], rewards[j], next_states[j], terminals[j], None) for j in range(state.shape[0])])
         nonterm_mask = ~terminals.squeeze(-1)
         if nonterm_mask.sum() == 0:
             break
         state = next_states[nonterm_mask]
+    return all_state, all_action, all_reward, all_sim_state
 
 
 def train_policy_repeats(args, total_step, train_step, cur_step, env_pool, model_pool, agent):
@@ -287,6 +305,7 @@ def main(args=None):
 
     # Initial environment
     env = create_env(args.env_name, suite=args.suite)
+    eval_env = create_env(args.env_name, suite=args.suite)
     wandb.init(entity="a2i", project="MBPO_baseline", group=args.group, config=args)
 
     # Set random seed
@@ -317,7 +336,7 @@ def main(args=None):
     # Sampler of environment
     env_sampler = EnvSampler(env, max_path_length=args.max_path_length)
 
-    train(args, env_sampler, predict_env, agent, env_pool, model_pool)
+    train(args, env_sampler, predict_env, agent, env_pool, model_pool, eval_env)
 
 
 if __name__ == '__main__':

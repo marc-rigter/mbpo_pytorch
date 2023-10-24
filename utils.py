@@ -13,14 +13,14 @@ def compute_traj_errors(env, observations, actions, rewards, sim_states, num_ste
     metrics = dict()
 
     max_steps = observations.shape[1] - 1
-    if max_steps not in num_steps:
+    if max_steps not in num_steps and max_steps > 0:
         num_steps.append(max_steps)
 
     # compute open-loop predictions for different horizons
     for num_step in num_steps:
         obs_errors = []
         rew_errors = []
-
+        
         if num_step > max_steps:
             continue
 
