@@ -122,7 +122,7 @@ def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
 def exploration_before_start(args, env_sampler, env_pool, agent):
     for i in range(args.init_exploration_steps):
         cur_state, action, next_state, reward, done, info = env_sampler.sample(agent)
-        env_pool.push(cur_state, action, reward, next_state, done)
+        env_pool.push(cur_state, action, reward, next_state, done, info["sim_state"])
 
 
 def set_rollout_length(args, epoch_step):
@@ -186,10 +186,10 @@ def train_policy_repeats(args, total_step, train_step, cur_step, env_pool, model
         env_batch_size = int(args.policy_train_batch_size * args.real_ratio)
         model_batch_size = args.policy_train_batch_size - env_batch_size
 
-        env_state, env_action, env_reward, env_next_state, env_done = env_pool.sample(int(env_batch_size))
+        env_state, env_action, env_reward, env_next_state, env_done, sim_state = env_pool.sample(int(env_batch_size))
 
         if model_batch_size > 0 and len(model_pool) > 0:
-            model_state, model_action, model_reward, model_next_state, model_done = model_pool.sample_all_batch(int(model_batch_size))
+            model_state, model_action, model_reward, model_next_state, model_done, sim_state = model_pool.sample_all_batch(int(model_batch_size))
             batch_state, batch_action, batch_reward, batch_next_state, batch_done = np.concatenate((env_state, model_state), axis=0), \
                                                                                     np.concatenate((env_action, model_action),
                                                                                                    axis=0), np.concatenate(

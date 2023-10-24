@@ -200,7 +200,7 @@ class EnsembleDynamicsModel():
         self.ensemble_model = EnsembleModel(state_size, action_size, reward_size, network_size, hidden_size, use_decay=use_decay)
         self.scaler = StandardScaler()
 
-    def train(self, inputs, labels, batch_size=256, holdout_ratio=0., max_epochs_since_update=10000, max_grad_updates=None):
+    def train(self, inputs, labels, batch_size=256, holdout_ratio=0., max_epochs_since_update=2, max_grad_updates=None):
         self._max_epochs_since_update = max_epochs_since_update
         self._epochs_since_update = 0
         self._state = {}
@@ -251,7 +251,9 @@ class EnsembleDynamicsModel():
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
                     break
-            # print('epoch: {}, holdout mse losses: {}'.format(epoch, holdout_mse_losses))
+
+            if epoch % 10 == 0:
+                print('epoch: {}, holdout mse losses: {}'.format(epoch, holdout_mse_losses))
 
     def _save_best(self, epoch, holdout_losses):
         updated = False
