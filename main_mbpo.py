@@ -17,7 +17,6 @@ from sac.sac import SAC
 from model import EnsembleDynamicsModel
 from predict_env import PredictEnv
 from sample_env import EnvSampler
-from tf_models.constructor import construct_model, format_samples_for_training
 from env import create_env
 
 def readParser():
@@ -294,12 +293,8 @@ def main(args=None):
     # Initial ensemble model
     state_size = np.prod(env.observation_space.shape)
     action_size = np.prod(env.action_space.shape)
-    if args.model_type == 'pytorch':
-        env_model = EnsembleDynamicsModel(args.num_networks, args.num_elites, state_size, action_size, args.reward_size, args.pred_hidden_size,
-                                          use_decay=args.use_decay)
-    else:
-        env_model = construct_model(obs_dim=state_size, act_dim=action_size, hidden_dim=args.pred_hidden_size, num_networks=args.num_networks,
-                                    num_elites=args.num_elites)
+    env_model = EnsembleDynamicsModel(args.num_networks, args.num_elites, state_size, action_size, args.reward_size, args.pred_hidden_size,
+                                        use_decay=args.use_decay)
 
     # Predict environments
     predict_env = PredictEnv(env_model, args.env_name, args.model_type)
