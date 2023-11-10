@@ -253,7 +253,7 @@ def main(args=None):
 
     # Initial environment
     env = create_env(args.env_name, suite=args.suite)
-    wandb.init(entity="a2i", project="MBPO_baseline", group=args.group, config=args)
+    wandb.init(entity="a2i", project="diffusion_world_models", group=args.group, config=args)
 
     # Set random seed
     torch.manual_seed(args.seed)
