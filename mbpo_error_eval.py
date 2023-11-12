@@ -113,10 +113,12 @@ def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
 
     for epoch_step in range(args.num_epoch):
         train_predict_model(args, env_pool, predict_env, num_steps=args.epoch_length)
-        rollout_states, rollout_actions, rollout_rewards, init_sim_state = rollout_model(args, predict_env, a2c, model_pool, env_pool, args.rollout_length)
-        metrics = compute_traj_errors(env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
-        wandb.log(metrics, step=(epoch_step + 1) * args.epoch_length)
-        
+        try:
+            rollout_states, rollout_actions, rollout_rewards, init_sim_state = rollout_model(args, predict_env, a2c, model_pool, env_pool, args.rollout_length)
+            metrics = compute_traj_errors(env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
+            wandb.log(metrics, step=(epoch_step + 1) * args.epoch_length)
+        except:
+            print("Error in model rollout, probably because of NaNs. Skipping this epoch.")
 
 
 def exploration_before_start(args, env_sampler, env_pool, agent):
