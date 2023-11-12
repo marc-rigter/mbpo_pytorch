@@ -21,7 +21,7 @@ module load pytorch/1.12.1
 
 export PYTHONPATH="${PYTHONPATH}:/jmain02/home/J2AD008/wga37/mxr40-wga37/github/mbpo_pytorch"
 
-GROUP=marc-prob-ens-errors-final_datasets_nov12
+GROUP=marc-prob-ens-errors-final_datasets_nov12-100steps
 SEED=1
 DATASET=/jmain02/home/J2AD008/wga37/mxr40-wga37/github/diffusion-wm/datasets/final_datasets_nov12/final-rl-runs-lowtrainratio_seed1_HalfCheetah
 LOAD_STEP=1000000
@@ -31,4 +31,4 @@ export WANDB_API_KEY=833a88a1139a7f5523d4b39cfd80bbe8f6abb710
 export WANDB_MODE=offline
 
 cd /jmain02/home/J2AD008/wga37/mxr40-wga37/github/mbpo_pytorch
-/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 mbpo_error_eval.py --group $GROUP --env_name HalfCheetah-v3 --rollout_length 200 --rollout_batch_size 500 --load_path $DATASET --load_step $LOAD_STEP
+/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 mbpo_error_eval.py --group $GROUP --env_name HalfCheetah-v3 --rollout_length 101 --rollout_batch_size 500 --load_path $DATASET --load_step $LOAD_STEP
