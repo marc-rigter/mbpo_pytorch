@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --time=24:00:00
+#SBATCH --time=12:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --array=1-1
 #SBATCH --partition=small
@@ -31,4 +31,4 @@ export WANDB_API_KEY=833a88a1139a7f5523d4b39cfd80bbe8f6abb710
 export WANDB_MODE=offline
 
 cd /jmain02/home/J2AD008/wga37/mxr40-wga37/github/mbpo_pytorch
-/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 mbpo_error_eval.py --group $GROUP --env_name Walker2d-v3 --rollout_length 500 --rollout_batch_size 500 --load_path $DATASET --load_step $LOAD_STEP
+/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 mbpo_error_eval.py --group $GROUP --env_name Walker2d-v3 --rollout_length 200 --rollout_batch_size 500 --load_path $DATASET --load_step $LOAD_STEP

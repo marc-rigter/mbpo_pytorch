@@ -163,6 +163,7 @@ def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length
     all_sim_state[:, 0, :] = sim_state
 
     for i in range(rollout_length):
+        print("Rollout step: ", i)
         policy_distr = agent.forward_actor(torch.Tensor(state).to("cuda:0"), normed_input=False)
         action = policy_distr.sample().detach().cpu().numpy()
         next_states, rewards, terminals, info = predict_env.step(state, action)
