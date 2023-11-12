@@ -126,9 +126,7 @@ def exploration_before_start(args, env_sampler, env_pool, agent):
 
 
 def set_rollout_length(args, epoch_step):
-    rollout_length = (min(max(args.rollout_min_length + (epoch_step - args.rollout_min_epoch)
-                              / (args.rollout_max_epoch - args.rollout_min_epoch) * (args.rollout_max_length - args.rollout_min_length),
-                              args.rollout_min_length), args.rollout_max_length))
+    rollout_length = args.rollout_length
     return int(rollout_length)
 
 
