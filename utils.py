@@ -24,7 +24,7 @@ def compute_traj_errors(env, observations, actions, rewards, sim_states):
         # set initial simulator state
         init_s = np.clip(init_s, a_min=env.observation_space.low, a_max=env.observation_space.high)
         env.reset()
-        env.set_state(init_s, init_sim_state)
+        env.set_state(init_sim_state)
 
         # loop over the next num_step steps
         for current_step in range(max_steps):
