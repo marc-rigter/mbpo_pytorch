@@ -6,6 +6,7 @@
 #SBATCH --partition=small
 #SBATCH --mem=16G 
 #SBATCH --cpus-per-task=4
+#SBATCH --exclude=dgk725
 
 ## output files
 #SBATCH --output=/jmain02/home/J2AD008/wga37/mxr40-wga37/logs/%x.%j.out
