@@ -114,8 +114,11 @@ def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
     for epoch_step in range(args.num_epoch):
         train_predict_model(args, env_pool, predict_env, num_steps=args.epoch_length)
         try:
-            rollout_states, rollout_actions, rollout_rewards, init_sim_state = rollout_model(args, predict_env, a2c, model_pool, env_pool, args.rollout_length)
-            metrics = compute_traj_errors(env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
+            metrics = dict()
+            rollout_states, rollout_actions, rollout_rewards, init_sim_state, timing_metrics = rollout_model(args, predict_env, a2c, model_pool, env_pool, args.rollout_length)
+            error_metrics = compute_traj_errors(env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
+            metrics.update(timing_metrics)
+            metrics.update(error_metrics)
             wandb.log(metrics, step=(epoch_step + 1) * args.epoch_length)
         except:
             print("Error in model rollout, probably because of NaNs. Skipping this epoch.")
@@ -164,6 +167,8 @@ def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length
     all_sim_state = np.zeros((args.rollout_batch_size, 1, sim_state.shape[1])) # B x 1 x S
     all_sim_state[:, 0, :] = sim_state
 
+    metrics = dict()
+    start = time.time()
     for i in range(rollout_length):
         print("Rollout step: ", i)
         policy_distr = agent.forward_actor(torch.Tensor(state).to("cuda:0"), normed_input=False)
@@ -173,7 +178,8 @@ def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length
         all_action[:, i] = action
         all_reward[:, i] = rewards
         state = next_states
-    return all_state, all_action, all_reward, all_sim_state
+        metrics[f"imagine_time/step_{i+1}"] = time.time() - start
+    return all_state, all_action, all_reward, all_sim_state, metrics
 
 
 def train_policy_repeats(args, total_step, train_step, cur_step, env_pool, model_pool, agent):
@@ -254,7 +260,7 @@ def main(args=None):
 
     # Initial environment
     env = create_env(args.env_name, suite=args.suite)
-    wandb.init(entity="a2i", project="diffusion_world_models", group=args.group, config=args)
+    wandb.init(entity="a2i", project="polygrad_results", group=args.group, config=args)
 
     # Set random seed
     torch.manual_seed(args.seed)
