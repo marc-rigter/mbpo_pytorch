@@ -177,7 +177,7 @@ def rollout_model(args, predict_env, agent, model_pool, env_pool, rollout_length
         all_state[:, i] = state
         all_action[:, i] = action
         all_reward[:, i] = rewards
-        state = next_states
+        state = np.clip(next_states, a_min=-1000, a_max=1000)
         metrics[f"imagine_time/step_{i+1}"] = time.time() - start
     return all_state, all_action, all_reward, all_sim_state, metrics
 
