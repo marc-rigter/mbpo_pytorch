@@ -127,7 +127,7 @@ def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
                 min_time_metrics = dict()
                 inputs = np.concatenate((state, action), axis=-1)
                 start = time.time()
-                for i in range(rollout_length):
+                for i in range(args.rollout_length):
                     predict_env.model.predict(inputs)
                     min_time_metrics[f"efficient_timing/step_{i+1}"] = time.time() - start
                 metrics.update(min_time_metrics)
