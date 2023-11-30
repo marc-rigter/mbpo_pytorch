@@ -125,8 +125,8 @@ def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
             if args.efficient_timing:
                 state, action, reward, next_state, done, sim_state = env_pool.sample_all_batch(args.rollout_batch_size)
                 min_time_metrics = dict()
-                start = time.time()
                 inputs = np.concatenate((state, action), axis=-1)
+                start = time.time()
                 for i in range(rollout_length):
                     predict_env.model.predict(inputs)
                     min_time_metrics[f"efficient_timing/step_{i+1}"] = time.time() - start
