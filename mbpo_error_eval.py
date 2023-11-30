@@ -49,6 +49,8 @@ def readParser():
                         help='Value target update per no. of updates per step (default: 1)')
     parser.add_argument('--automatic_entropy_tuning', type=bool, default=False, metavar='G',
                         help='Automaically adjust α (default: False)')
+    parser.add_argument('--efficient_timing', type=bool, default=False, metavar='G',
+                        help='Run minimal loop to time forward passes')
     parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                         help='hidden size (default: 256)')
     parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
@@ -119,6 +121,16 @@ def train(args, env_sampler, predict_env, a2c, env_pool, model_pool, env):
             error_metrics = compute_traj_errors(env, rollout_states, rollout_actions, rollout_rewards, init_sim_state)
             metrics.update(timing_metrics)
             metrics.update(error_metrics)
+
+            if args.efficient_timing:
+                state, action, reward, next_state, done, sim_state = env_pool.sample_all_batch(args.rollout_batch_size)
+                min_time_metrics = dict()
+                start = time.time()
+                inputs = np.concatenate((state, action), axis=-1)
+                for i in range(rollout_length):
+                    predict_env.model.predict(inputs)
+                    min_time_metrics[f"efficient_timing/step_{i+1}"] = time.time() - start
+                metrics.update(min_time_metrics)
             wandb.log(metrics, step=(epoch_step + 1) * args.epoch_length)
         except:
             print("Error in model rollout, probably because of NaNs. Skipping this epoch.")
