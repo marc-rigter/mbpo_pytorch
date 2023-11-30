@@ -33,4 +33,4 @@ export WANDB_MODE=offline
 cd /jmain02/home/J2AD008/wga37/mxr40-wga37/github/mbpo_pytorch
 
 SEED=1
-/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 mbpo_error_eval.py --group $GROUP --epoch_length 5000 --env_name Walker2d-v3 --rollout_length 300 --rollout_batch_size 1000 --load_path $DATASET --load_step $LOAD_STEP --seed $SEED
+/jmain02/home/J2AD008/wga37/mxr40-wga37/.conda/envs/diffusion/bin/python3 mbpo_error_eval.py --group $GROUP --efficient_timing True --epoch_length 5000 --env_name Walker2d-v3 --rollout_length 300 --rollout_batch_size 1000 --load_path $DATASET --load_step $LOAD_STEP --seed $SEED
